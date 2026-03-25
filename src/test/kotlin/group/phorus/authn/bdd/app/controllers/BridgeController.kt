@@ -1,0 +1,81 @@
+package group.phorus.authn.bdd.app.controllers
+
+import group.phorus.authn.bdd.app.model.Device
+import group.phorus.authn.bdd.app.model.User
+import group.phorus.authn.bdd.app.repositories.DeviceRepository
+import group.phorus.authn.bdd.app.repositories.UserRepository
+import group.phorus.authn.core.dtos.AccessToken
+import group.phorus.authn.core.services.Authenticator
+import group.phorus.authn.core.services.TokenFactory
+import group.phorus.authn.services.impl.IdpAuthenticator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.*
+
+@RestController
+@RequestMapping("/bridge")
+class BridgeController(
+    idpAuthenticatorProvider: ObjectProvider<IdpAuthenticator>,
+    private val tokenFactory: TokenFactory,
+    private val authenticator: Authenticator,
+    private val userRepository: UserRepository,
+    private val deviceRepository: DeviceRepository,
+) {
+    private val idpAuthenticator = idpAuthenticatorProvider.getIfAvailable()
+
+    @PostMapping("/login")
+    @ResponseStatus(HttpStatus.OK)
+    suspend fun bridgeLogin(
+        @RequestHeader(name = "Authorization") authHeader: String,
+    ): BridgeResponse {
+        val idpToken = authHeader.removePrefix("Bearer ")
+        val idpAuth = idpAuthenticator
+            ?: throw IllegalStateException("IdpAuthenticator is not configured for IDP_BRIDGE mode")
+
+        val authData = idpAuth.authenticate(idpToken)
+
+        // Provision a local user for the IdP subject
+        val user = withContext(Dispatchers.IO) {
+            userRepository.findByEmail("bridge-${authData.userId}@idp.example.com").orElseGet {
+                userRepository.saveAndFlush(
+                    User(
+                        name = "bridge-user",
+                        email = "bridge-${authData.userId}@idp.example.com",
+                        passwordHash = "not-used",
+                    )
+                )
+            }
+        }
+
+        // This is just a placeholder for custom properties
+        val properties = mapOf("tokenThingy" to true.toString())
+
+        val accessToken = tokenFactory.createAccessToken(
+            user.id!!,
+            authData.privileges,
+            properties,
+        )
+
+        // Extract JTI and create a device entry so test validators pass
+        val accessTokenJTI = authenticator.authenticate(accessToken.token, enableValidators = false).jti
+
+        withContext(Dispatchers.IO) {
+            deviceRepository.saveAndFlush(
+                Device(
+                    name = "bridge-device",
+                    user = user,
+                    accessTokenJTI = accessTokenJTI,
+                    refreshTokenJTI = accessTokenJTI,
+                )
+            )
+        }
+
+        return BridgeResponse(accessToken = accessToken)
+    }
+}
+
+data class BridgeResponse(
+    val accessToken: AccessToken,
+)

@@ -1,0 +1,12 @@
+group.phorus.authn.config.SecurityConfiguration
+group.phorus.authn.config.UserContextConverter
+group.phorus.authn.config.ApiKeyContextConverter
+group.phorus.authn.config.PasswordEncoderConfig
+group.phorus.authn.filters.AuthFilter
+group.phorus.authn.filters.ApiKeyFilter
+group.phorus.authn.filters.HTTPFilter
+group.phorus.authn.services.impl.StandaloneAuthenticator
+group.phorus.authn.services.impl.TokenFactoryImpl
+group.phorus.authn.config.IdpAutoConfiguration
+group.phorus.authn.services.impl.IdpAuthenticator
+group.phorus.authn.config.MetricsRecorder
