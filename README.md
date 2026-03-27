@@ -15,7 +15,6 @@ available to your controllers and services automatically.
 > any found vulnerabilities will be fixed as soon as possible.
 
 > The project dependencies are being regularly updated by [Renovate](https://github.com/phorus-group/renovate).
-> Dependency updates that don't break tests will be automatically deployed with an updated patch version.
 
 > The project has been thoroughly tested to ensure that it is safe to use in a production environment.
 
