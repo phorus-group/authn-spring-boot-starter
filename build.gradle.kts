@@ -23,7 +23,7 @@ ext["netty.version"] = "4.2.11.Final"
 
 group = "group.phorus"
 description = "Spring Boot starter providing JWT-based authentication, API key authentication, and coroutine-aware request context for Phorus services."
-version = "1.0.0"
+version = "1.0.1"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
