@@ -72,6 +72,15 @@ configurations.matching { it.name.startsWith("test") }.configureEach {
     }
 }
 
+// Force Bouncy Castle 1.84 to fix CVE-2026-3505 (HIGH), CVE-2026-5588 (MEDIUM), CVE-2026-0636 (MEDIUM)
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.bouncycastle") {
+            useVersion("1.84")
+        }
+    }
+}
+
 val repoUrl = System.getenv("GITHUB_REPOSITORY")?.let { "https://github.com/$it" }
     ?: "https://github.com/phorus-group/authn-spring-boot-starter"
 
