@@ -56,7 +56,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa")
     testImplementation("org.springframework.boot:spring-boot-webtestclient")
-    testImplementation("group.phorus:test-commons:1.1.9")
+    testImplementation("group.phorus:test-commons:1.1.10")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.3")
     testImplementation("org.wiremock:wiremock-jetty12:3.13.1")
     testImplementation("io.mockk:mockk:1.14.9")
