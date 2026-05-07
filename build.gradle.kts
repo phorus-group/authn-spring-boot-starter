@@ -23,7 +23,7 @@ ext["netty.version"] = "4.2.13.Final"
 
 group = "group.phorus"
 description = "Spring Boot starter providing JWT-based authentication, API key authentication, and coroutine-aware request context for Phorus services."
-version = "1.0.1"
+version = "1.0.2"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -37,11 +37,11 @@ repositories {
 
 dependencies {
     // Phorus
-    api("group.phorus:authn-core:1.0.1")
+    api("group.phorus:authn-core:1.0.3")
     api("org.springframework.security:spring-security-crypto")
-    implementation("group.phorus:mapper:1.2.0")
-    api("group.phorus:exception-spring-boot-starter:1.0.0")
-    implementation("group.phorus:metrics-commons:2.0.2")
+    implementation("group.phorus:mapper:1.2.3")
+    api("group.phorus:exception-spring-boot-starter:1.1.1")
+    implementation("group.phorus:metrics-commons:2.0.4")
 
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -56,7 +56,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa")
     testImplementation("org.springframework.boot:spring-boot-webtestclient")
-    testImplementation("group.phorus:test-commons:1.1.7")
+    testImplementation("group.phorus:test-commons:1.1.9")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.3")
     testImplementation("org.wiremock:wiremock-jetty12:3.13.1")
     testImplementation("io.mockk:mockk:1.14.9")
