@@ -6,7 +6,7 @@ import java.net.URI
 import java.time.LocalDate
 
 plugins {
-    id("org.springframework.boot") version "4.0.3"
+    id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.spring") version "2.3.10"
     kotlin("jvm") version "2.3.10"
@@ -18,7 +18,7 @@ plugins {
 
 ext["jackson-2-bom.version"] = "2.21.1"
 ext["jackson-bom.version"] = "3.1.1"
-ext["spring-framework.version"] = "7.0.6"
+ext["spring-framework.version"] = "7.0.7"
 ext["netty.version"] = "4.2.13.Final"
 
 group = "group.phorus"
