@@ -40,7 +40,7 @@ dependencies {
     api("group.phorus:authn-core:1.0.3")
     api("org.springframework.security:spring-security-crypto")
     implementation("group.phorus:mapper:1.2.3")
-    api("group.phorus:exception-spring-boot-starter:1.1.1")
+    api("group.phorus:exception-spring-boot-starter:1.1.2")
     implementation("group.phorus:metrics-commons:2.0.4")
 
     // Spring
