@@ -1,0 +1,4 @@
+# CVE-2026-54515 affects com.fasterxml.jackson.core:jackson-databind (MEDIUM).
+# Fix versions 2.21.5 and 2.22.1 are not yet released. Suppress until a fix is available.
+# Revisit when jackson-databind 2.21.5+ is published on Maven Central.
+CVE-2026-54515 exp:2026-10-01
