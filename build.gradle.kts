@@ -16,7 +16,7 @@ plugins {
     jacoco
 }
 
-ext["jackson-2-bom.version"] = "2.21.5"
+ext["jackson-2-bom.version"] = "2.22.0"
 ext["jackson-bom.version"] = "3.1.4"
 ext["logback.version"] = "1.5.33"
 ext["spring-framework.version"] = "7.0.7"
