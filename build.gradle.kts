@@ -16,10 +16,11 @@ plugins {
     jacoco
 }
 
-ext["jackson-2-bom.version"] = "2.21.1"
-ext["jackson-bom.version"] = "3.1.1"
+ext["jackson-2-bom.version"] = "2.21.5"
+ext["jackson-bom.version"] = "3.1.5"
+ext["logback.version"] = "1.5.34"
 ext["spring-framework.version"] = "7.0.7"
-ext["netty.version"] = "4.2.15.Final"
+ext["netty.version"] = "4.2.16.Final"
 
 group = "group.phorus"
 description = "Spring Boot starter providing JWT-based authentication, API key authentication, and coroutine-aware request context for Phorus services."
