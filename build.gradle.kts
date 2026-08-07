@@ -82,6 +82,25 @@ configurations.configureEach {
     }
 }
 
+// Force micrometer 1.16.6 to fix CVE-2026-40983 (HIGH), CVE-2026-40984 (HIGH)
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "io.micrometer" &&
+            requested.name in listOf("micrometer-core", "micrometer-commons", "micrometer-observation", "micrometer-registry-prometheus")) {
+            useVersion("1.16.6")
+        }
+    }
+}
+
+// Force jsoup 1.23.1 to fix CVE-2026-71497 (MEDIUM)
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jsoup") {
+            useVersion("1.23.1")
+        }
+    }
+}
+
 val repoUrl = System.getenv("GITHUB_REPOSITORY")?.let { "https://github.com/$it" }
     ?: "https://github.com/phorus-group/authn-spring-boot-starter"
 
