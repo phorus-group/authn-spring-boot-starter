@@ -74,11 +74,11 @@ configurations.matching { it.name.startsWith("test") }.configureEach {
     }
 }
 
-// Force Bouncy Castle 1.84 to fix CVE-2026-3505 (HIGH), CVE-2026-5588 (MEDIUM), CVE-2026-0636 (MEDIUM)
+// Force Bouncy Castle 1.85 to fix CVE-2026-3505 (HIGH), CVE-2026-5588 (MEDIUM), CVE-2026-0636 (MEDIUM), CVE-2026-8763 (CRITICAL), CVE-2026-13506 (HIGH)
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "org.bouncycastle") {
-            useVersion("1.84")
+            useVersion("1.85")
         }
     }
 }
