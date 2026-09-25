@@ -102,6 +102,15 @@ configurations.configureEach {
     }
 }
 
+// Force freemarker 2.3.35 to fix CVE-2026-84939 (CRITICAL)
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.freemarker") {
+            useVersion("2.3.35")
+        }
+    }
+}
+
 val repoUrl = System.getenv("GITHUB_REPOSITORY")?.let { "https://github.com/$it" }
     ?: "https://github.com/phorus-group/authn-spring-boot-starter"
 
