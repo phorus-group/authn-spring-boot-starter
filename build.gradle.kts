@@ -93,11 +93,11 @@ configurations.configureEach {
     }
 }
 
-// Force jsoup 1.23.1 to fix CVE-2026-71497 (MEDIUM)
+// Force jsoup 1.23.2 to fix CVE-2026-71497 (MEDIUM) and CVE-2026-75140 (HIGH)
 configurations.configureEach {
     resolutionStrategy.eachDependency {
         if (requested.group == "org.jsoup") {
-            useVersion("1.23.1")
+            useVersion("1.23.2")
         }
     }
 }
