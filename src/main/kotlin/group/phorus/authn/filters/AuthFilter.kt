@@ -43,13 +43,8 @@ import org.springframework.web.server.ServerWebExchange
  *
  * If both are configured, the filter throws an [IllegalStateException].
  *
- * ### Privilege gates
- * After a token is validated, [group.phorus.authn.config.TokenFilterConfiguration.privilegeGates]
- * are evaluated. Each gate matching the request path requires the user to hold at least one of its
- * listed privileges. Multiple gates for the same path are AND-combined. Requests failing any gate
- * receive a `403 Forbidden` response.
- *
- * Additionally, refresh tokens are only accepted on the configured
+ * ### Refresh tokens
+ * Refresh tokens are only accepted on the configured
  * [group.phorus.authn.config.TokenFilterConfiguration.refreshTokenPath];
  * all other paths reject them with a 401.
  *
@@ -130,8 +125,6 @@ class AuthFilter(
             throw Unauthorized("Invalid access token")
 
         val authContextData = authData.mapTo<AuthContextData>()!!
-
-        checkPrivilegeGates(tokenConfig.privilegeGates, path, method, authContextData.scope)
 
         return withContext(AuthContext.context.asContextElement(value = authContextData)) {
             chain.filter(exchange)

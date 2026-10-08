@@ -22,15 +22,15 @@ class ValidatorStepsDefinition(
     @Autowired private val deviceRepository: DeviceRepository,
     @Autowired private val userRepository: UserRepository,
 ) {
-    @Given("the caller has a token for that user with privileges {string} and claim {string} = {string}")
-    fun `the caller has a token for that user with custom claim`(privileges: String, claimName: String, claimValue: String) {
+    @Given("the caller has a token for that user with scope {string} and claim {string} = {string}")
+    fun `the caller has a token for that user with custom claim`(scope: String, claimName: String, claimValue: String) {
         val userId = baseScenarioScope.objects["userId"] as String
-        val privilegesList = privileges.split(" ").filter { it.isNotBlank() }
+        val scopeList = scope.split(" ").filter { it.isNotBlank() }
 
         val accessToken = runBlocking {
             tokenFactory.createAccessToken(
                 UUID.fromString(userId),
-                privilegesList,
+                scopeList,
                 mapOf(claimName to claimValue),
             )
         }

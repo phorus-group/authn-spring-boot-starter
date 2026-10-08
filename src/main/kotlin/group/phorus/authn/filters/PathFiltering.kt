@@ -1,8 +1,6 @@
 package group.phorus.authn.filters
 
 import group.phorus.authn.config.Path
-import group.phorus.authn.config.PrivilegeGate
-import group.phorus.exception.core.Forbidden
 import org.springframework.http.HttpMethod
 import org.springframework.http.server.PathContainer
 import org.springframework.web.util.pattern.PathPatternParser
@@ -40,41 +38,6 @@ internal fun shouldSkipPath(
     }
 
     return false
-}
-
-/**
- * Checks that the authenticated user holds the required privileges for the incoming request,
- * according to the configured [gates].
- *
- * ### Evaluation semantics
- *
- * - **OR within a gate**: any one privilege in a gate's list is sufficient to satisfy that gate.
- * - **AND across gates**: all gates matching the request path must independently be satisfied.
- *
- * Gates with an empty [PrivilegeGate.privileges] list are skipped (no restriction imposed).
- * Throws [Forbidden] if any matching gate is not satisfied by [userPrivileges].
- *
- * @param gates The configured privilege gates.
- * @param path The incoming request path.
- * @param method The incoming request HTTP method.
- * @param userPrivileges The authenticated user's privileges from the validated token.
- */
-internal fun checkPrivilegeGates(
-    gates: List<PrivilegeGate>,
-    path: String,
-    method: HttpMethod,
-    userPrivileges: List<String>,
-) {
-    val matchingGates = gates.filter { gate ->
-        gate.privileges.isNotEmpty() && matchesPath(gate.path, gate.method, path, method)
-    }
-    if (matchingGates.isEmpty()) return
-
-    val allSatisfied = matchingGates.all { gate ->
-        gate.privileges.any { required -> required in userPrivileges }
-    }
-
-    if (!allSatisfied) throw Forbidden("Insufficient privileges for this endpoint")
 }
 
 private val pathPatternParser = PathPatternParser()

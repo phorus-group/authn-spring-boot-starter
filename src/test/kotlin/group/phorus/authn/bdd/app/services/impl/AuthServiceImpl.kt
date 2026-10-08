@@ -82,7 +82,8 @@ class AuthServiceImpl(
         // will inherit its properties
         val properties = mapOf("tokenThingy" to true.toString())
 
-        // We are setting the privileges with "admin" as an example, please take the privileges from a privileges table
+        // The list goes into the scope claim. A real service reads it from wherever it records what
+        // the calling application was granted
         val accessToken = tokenFactory.createAccessToken(user.id!!, listOf("admin"), properties)
         val refreshToken = tokenFactory.createRefreshToken(user.id!!, loginData.expires, properties)
 

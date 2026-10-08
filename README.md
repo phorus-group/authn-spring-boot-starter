@@ -49,7 +49,6 @@ available to your controllers and services automatically.
   - [Manual token validation](#manual-token-validation)
   - [Password encoding](#password-encoding)
   - [Path filtering modes](#path-filtering-modes)
-  - [Privilege gates](#privilege-gates)
   - [Disabling filters](#disabling-filters)
 - [Metrics](#metrics)
 - [Configuration reference](#configuration-reference)
@@ -123,7 +122,6 @@ and configure step 1 (which paths don't require authentication).
 - **HTTP request metadata**: capture request path, method, headers, and remote IP via `HTTPContext`
 - **Nested claim extraction**: supports dot notation for extracting nested JSON claims (e.g. `realm_access.roles`)
 - **Path filtering modes**: per-filter `ignored-paths` (skip listed) or `protected-paths` (only filter listed), with optional HTTP method constraints
-- **Privilege gates**: require specific JWT privileges for configured paths, applied after authentication. Returns 403 Forbidden if the user holds none of the required privileges. OR within a gate's list; AND across multiple gates for the same path.
 - **Optional metrics**: authentication duration timers via [metrics-commons](https://github.com/phorus-group/metrics-commons), enabled by default when Actuator is present
 - **Coroutine-native**: the authenticated user is available anywhere in your request handling code
 - **Password encoding**: autoconfigured SCrypt password encoder
@@ -1297,55 +1295,6 @@ group:
 
 </details>
 
-### Privilege gates
-
-<details>
-<summary><b>Requiring specific privileges for certain paths</b></summary>
-
-`privilege-gates` enforce privilege-level access control on top of token authentication.
-After the token is validated, each gate whose path matches the request is checked: the
-authenticated user must hold **at least one** privilege from that gate's list. Requests
-failing any gate receive a **403 Forbidden** response.
-
-```yaml
-group:
-  phorus:
-    security:
-      filters:
-        token:
-          enabled: true
-          privilege-gates:
-            - path: /api/admin/**
-              privileges: [admin]
-            - path: /api/finance/**
-              privileges: [finance, admin]   # OR: any one is sufficient
-            - path: /api/reports
-              method: GET
-              privileges: [reports:read]     # only GET requires this privilege
-```
-
-**OR within a gate:** a user holding any one of the listed privileges passes that gate.
-`[finance, admin]` means users with `finance` OR `admin` can access the path.
-
-**AND across gates:** multiple gates for the same path are independent requirements.
-The user must satisfy every matching gate. Use this to require two distinct privileges simultaneously:
-
-```yaml
-privilege-gates:
-  # Require BOTH finance AND reports:read for this path
-  - path: /api/finance/reports
-    privileges: [finance]
-  - path: /api/finance/reports
-    privileges: [reports:read]
-```
-
-Gates are evaluated only after successful token authentication. Paths bypassed by
-`ignored-paths` or outside `protected-paths` are never gate-checked.
-
-Gates with an empty `privileges` list have no effect and are skipped.
-
-</details>
-
 ### Disabling filters
 
 <details>
@@ -1487,9 +1436,6 @@ phorus:
 | `group.phorus.security.filters.token.ignored-paths[].method` | | Optional HTTP method constraint |
 | `group.phorus.security.filters.token.protected-paths[].path` | | Only these paths require token authentication (mutually exclusive with `ignored-paths`) |
 | `group.phorus.security.filters.token.protected-paths[].method` | | Optional HTTP method constraint |
-| `group.phorus.security.filters.token.privilege-gates[].path` | | Path pattern (Spring PathPattern syntax) that triggers the gate |
-| `group.phorus.security.filters.token.privilege-gates[].method` | | Optional HTTP method constraint for this gate |
-| `group.phorus.security.filters.token.privilege-gates[].privileges[]` | | Required privilege list; OR semantics (any one is sufficient). Multiple gates for the same path are AND-combined. |
 | `group.phorus.security.filters.api-key.enabled` | `false` | Enable/disable the API key authentication filter |
 | `group.phorus.security.filters.api-key.header` | `X-API-KEY` | HTTP header name to read the API key from |
 | `group.phorus.security.filters.api-key.keys.<name>` | | Static named API keys (key = identity name, value = secret) |
