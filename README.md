@@ -293,7 +293,8 @@ class OrderService {
 **Option 2: `@RequestHeader` parameter injection**
 
 Spring can automatically convert the `Authorization` header into an `AuthContextData` object
-in your controller method signature. This is useful when you prefer explicit parameter passing:
+in your controller method signature. This is useful when you prefer explicit parameter passing.
+Registered validators run, and a refresh token is rejected with a 401.
 
 ```kotlin
 @GetMapping("/me")

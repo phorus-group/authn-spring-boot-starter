@@ -33,6 +33,11 @@ class UserContextConverterTest {
             properties = emptyMap(),
         )
 
+        private val REFRESH_AUTH_DATA = AUTH_DATA.copy(
+            tokenType = TokenType.REFRESH_TOKEN,
+            jti = "test-jti-refresh",
+        )
+
         private fun mockAuthenticator(returnData: AuthData = AUTH_DATA): Authenticator {
             val authenticator = mock<Authenticator>()
             whenever(authenticator.authenticate(any(), any())).thenReturn(returnData)
@@ -93,6 +98,25 @@ class UserContextConverterTest {
         }
 
         @Test
+        fun `throws Unauthorized when another scheme embeds the Bearer word`() {
+            val converter = buildConverter()
+
+            assertThrows<Unauthorized> {
+                converter.convert("Basic dXNlcjpwYXNzBearer abc")
+            }
+        }
+
+        @Test
+        fun `accepts a lowercase bearer scheme`() {
+            val authenticator = mockAuthenticator()
+            val converter = buildConverter(authenticator = authenticator)
+
+            converter.convert("bearer my-jwt-token")
+
+            verify(authenticator).authenticate(eq("my-jwt-token"), eq(true))
+        }
+
+        @Test
         fun `throws Unauthorized for empty string`() {
             val converter = buildConverter()
 
@@ -113,17 +137,17 @@ class UserContextConverterTest {
 
             converter.convert("Bearer my-jwt-token")
 
-            verify(authenticator).authenticate(eq("my-jwt-token"), eq(false))
+            verify(authenticator).authenticate(eq("my-jwt-token"), eq(true))
         }
 
         @Test
-        fun `passes enableValidators as false`() {
+        fun `runs registered validators`() {
             val authenticator = mockAuthenticator()
             val converter = buildConverter(authenticator = authenticator)
 
             converter.convert("Bearer some-token")
 
-            verify(authenticator).authenticate(any(), eq(false))
+            verify(authenticator).authenticate(any(), eq(true))
         }
 
         @Test
@@ -132,7 +156,6 @@ class UserContextConverterTest {
 
             val result = converter.convert("Bearer valid-token")
 
-            assertNotNull(result)
             assertEquals(TEST_USER_ID, result.userId)
         }
 
@@ -151,6 +174,19 @@ class UserContextConverterTest {
     }
 
     @Nested
+    @DisplayName("Token type enforcement")
+    inner class TokenTypeEnforcement {
+
+        @Test
+        fun `rejects a refresh token`() {
+            val authenticator = mockAuthenticator(REFRESH_AUTH_DATA)
+            val converter = buildConverter(authenticator = authenticator)
+
+            assertThrows<Unauthorized> { converter.convert("Bearer refresh-token") }
+        }
+    }
+
+    @Nested
     @DisplayName("Mode-based routing")
     inner class ModeRouting {
 
@@ -162,7 +198,7 @@ class UserContextConverterTest {
 
             converter.convert("Bearer some-token")
 
-            verify(authenticator).authenticate(any(), eq(false))
+            verify(authenticator).authenticate(any(), eq(true))
             verifyNoInteractions(idpAuth)
         }
 
@@ -174,7 +210,7 @@ class UserContextConverterTest {
 
             converter.convert("Bearer some-token")
 
-            verify(authenticator).authenticate(any(), eq(false))
+            verify(authenticator).authenticate(any(), eq(true))
             verifyNoInteractions(idpAuth)
         }
 
@@ -186,7 +222,7 @@ class UserContextConverterTest {
 
             converter.convert("Bearer some-token")
 
-            verify(idpAuth).authenticate(any(), eq(false))
+            verify(idpAuth).authenticate(any(), eq(true))
             verifyNoInteractions(authenticator)
         }
 

@@ -145,6 +145,27 @@ class AuthFilterTest {
         }
 
         @Test
+        fun `throws Unauthorized when another scheme embeds the Bearer word`() {
+            val config = buildConfig()
+            val filter = AuthFilter(config, mockAuthenticator(), idpAuthenticatorProvider(), emptyMetricsProvider())
+            val exchange = buildExchange(authHeader = "Basic dXNlcjpwYXNzBearer abc")
+
+            assertThrows<Unauthorized> { invokeFilter(filter, exchange) }
+        }
+
+        @Test
+        fun `accepts a lowercase bearer scheme`() {
+            val authenticator = mockAuthenticator()
+            val config = buildConfig()
+            val filter = AuthFilter(config, authenticator, idpAuthenticatorProvider(), emptyMetricsProvider())
+            val exchange = buildExchange(authHeader = "bearer my-jwt-token")
+
+            invokeFilter(filter, exchange)
+
+            verify(authenticator).authenticate(eq("my-jwt-token"), any())
+        }
+
+        @Test
         fun `extracts token after Bearer prefix`() {
             val authenticator = mockAuthenticator()
             val config = buildConfig()

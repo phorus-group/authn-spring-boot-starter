@@ -7,6 +7,7 @@ import group.phorus.authn.core.context.AuthContext
 import group.phorus.authn.core.dtos.AuthContextData
 import group.phorus.authn.core.dtos.TokenType
 import group.phorus.authn.core.services.Authenticator
+import group.phorus.authn.extractBearerToken
 import group.phorus.authn.services.impl.IdpAuthenticator
 import group.phorus.exception.core.Unauthorized
 import group.phorus.mapper.mapping.extensions.mapTo
@@ -67,7 +68,6 @@ class AuthFilter(
     idpAuthenticatorProvider: ObjectProvider<IdpAuthenticator>,
     metricsProvider: ObjectProvider<MetricsRecorder>,
 ) : CoWebFilter() {
-    private val headerPrefix = "Bearer "
     private val idpAuthenticator = idpAuthenticatorProvider.getIfAvailable()
     private val metrics = metricsProvider.getIfAvailable()
 
@@ -93,10 +93,7 @@ class AuthFilter(
         val header = exchange.request.headers.getFirst(AUTHORIZATION)
             ?: throw Unauthorized("Authorization header is missing or invalid")
 
-        if (header.length <= headerPrefix.length) throw Unauthorized("Invalid authorization header size")
-        if (!header.contains(headerPrefix)) throw Unauthorized("Bearer token not found")
-
-        val jwt = header.substring(headerPrefix.length)
+        val jwt = extractBearerToken(header)
         val mode = securityConfiguration.mode.name.lowercase()
 
         suspend fun performAuthentication() = when (securityConfiguration.mode) {

@@ -232,12 +232,12 @@ class IdpAuthStepsDefinition(
 
     private fun getOrFetchResponseBody(): Map<String, Any> {
         @Suppress("UNCHECKED_CAST")
-        val cached = baseScenarioScope.objects["idpResponseBody"] as? Map<String, Any>
+        val cached = baseScenarioScope.objects["responseBody"] as? Map<String, Any>
         if (cached != null) return cached
 
         @Suppress("UNCHECKED_CAST")
         val body = responseScenarioScope.bodyAs<Map<String, Any>>(objectMapper)!!
-        baseScenarioScope.objects["idpResponseBody"] = body
+        baseScenarioScope.objects["responseBody"] = body
         return body
     }
 }
