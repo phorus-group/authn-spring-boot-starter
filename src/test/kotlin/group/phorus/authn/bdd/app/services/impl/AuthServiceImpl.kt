@@ -55,7 +55,13 @@ class AuthServiceImpl(
         }
         if (device == null || device.disabled) throw Unauthorized("Invalid refresh token, please log in again")
 
-        val accessToken = tokenFactory.createAccessToken(authData.userId, listOf("admin"), authData.properties)
+        // The library writes the registered claims itself and refuses them from a caller, so only the
+        // claims this service added to the refresh token are carried over
+        val properties = authData.properties
+            .filterKeys { it !in REGISTERED_CLAIMS }
+            .mapValues { it.value.toString() }
+
+        val accessToken = tokenFactory.createAccessToken(authData.userId, listOf("admin"), properties)
         val accessTokenJTI = authenticator.authenticate(accessToken.token, enableValidators = false).jti
 
         device.accessTokenJTI = accessTokenJTI
@@ -97,5 +103,9 @@ class AuthServiceImpl(
         }.let { deviceRepository.save(it) }
 
         return AuthResponse(accessToken, refreshToken)
+    }
+
+    companion object {
+        private val REGISTERED_CLAIMS = setOf("jti", "sub", "iss", "iat", "exp", "nbf", "aud")
     }
 }

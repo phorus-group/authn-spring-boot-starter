@@ -25,7 +25,7 @@ ext["netty.version"] = "4.2.17.Final"
 
 group = "group.phorus"
 description = "Spring Boot starter providing JWT-based authentication, API key authentication, and coroutine-aware request context for Phorus services."
-version = "1.0.2"
+version = "2.0.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -39,7 +39,7 @@ repositories {
 
 dependencies {
     // Phorus
-    api("group.phorus:authn-core:1.0.3")
+    api("group.phorus:authn-core:2.0.0")
     api("org.springframework.security:spring-security-crypto")
     implementation("group.phorus:mapper:1.2.3")
     api("group.phorus:exception-spring-boot-starter:1.1.2")

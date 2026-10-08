@@ -13,8 +13,11 @@ class DeviceValidatorImpl(
 ) : Validator {
     override fun accepts(property: String): Boolean = property == Claims.ID
 
-    override fun isValid(value: String, properties: Map<String, String>): Boolean =
-        deviceRepository.findByUserIdAndJTI(UUID.fromString(properties[Claims.SUBJECT]), value).getOrNull().let {
+    override fun isValid(value: Any?, properties: Map<String, Any?>): Boolean =
+        deviceRepository.findByUserIdAndJTI(
+            UUID.fromString(properties[Claims.SUBJECT].toString()),
+            value.toString(),
+        ).getOrNull().let {
             it != null && !it.disabled
         }
 }

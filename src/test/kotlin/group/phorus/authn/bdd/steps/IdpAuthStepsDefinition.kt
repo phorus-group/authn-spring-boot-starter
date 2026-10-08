@@ -103,13 +103,13 @@ class IdpAuthStepsDefinition(
         )
     }
 
-    @Given("the caller has a valid IdP JWS token with subject {string} and privileges {string}")
-    fun `the caller has a valid IdP JWS token`(subject: String, privileges: String) {
+    @Given("the caller has a valid IdP JWS token with subject {string} and scope {string}")
+    fun `the caller has a valid IdP JWS token`(subject: String, scope: String) {
         val token = Jwts.builder()
             .header().keyId(KID).and()
             .issuer(ISSUER)
             .subject(subject)
-            .claim("scope", privileges)
+            .claim("scope", scope)
             .issuedAt(Date.from(Instant.now()))
             .expiration(Date.from(Instant.now().plusSeconds(3600)))
             .signWith(signingPrivateKey)
@@ -118,14 +118,14 @@ class IdpAuthStepsDefinition(
         baseScenarioScope.objects["idpToken"] = token
     }
 
-    @Given("the caller has a valid IdP nested JWE token with subject {string} and privileges {string}")
-    fun `the caller has a valid IdP nested JWE token`(subject: String, privileges: String) {
+    @Given("the caller has a valid IdP nested JWE token with subject {string} and scope {string}")
+    fun `the caller has a valid IdP nested JWE token`(subject: String, scope: String) {
         // Sign the inner JWS
         val innerJws = Jwts.builder()
             .header().keyId(KID).and()
             .issuer(ISSUER)
             .subject(subject)
-            .claim("scope", privileges)
+            .claim("scope", scope)
             .issuedAt(Date.from(Instant.now()))
             .expiration(Date.from(Instant.now().plusSeconds(3600)))
             .signWith(signingPrivateKey)
@@ -141,13 +141,29 @@ class IdpAuthStepsDefinition(
         baseScenarioScope.objects["idpToken"] = nestedJwe
     }
 
-    @Given("the caller has a valid IdP JWS token with subject {string} and privileges {string} and claim {string} = {string}")
-    fun `the caller has a valid IdP JWS token with custom claim`(subject: String, privileges: String, claimName: String, claimValue: String) {
+    @Given("the caller has a valid IdP JWS token with subject {string}, scope {string} and roles {string}")
+    fun `the caller has a valid IdP JWS token with roles`(subject: String, scope: String, roles: String) {
         val token = Jwts.builder()
             .header().keyId(KID).and()
             .issuer(ISSUER)
             .subject(subject)
-            .claim("scope", privileges)
+            .claim("scope", scope)
+            .claim("roles", roles.split(" ").filter { it.isNotBlank() })
+            .issuedAt(Date.from(Instant.now()))
+            .expiration(Date.from(Instant.now().plusSeconds(3600)))
+            .signWith(signingPrivateKey)
+            .compact()
+
+        baseScenarioScope.objects["idpToken"] = token
+    }
+
+    @Given("the caller has a valid IdP JWS token with subject {string} and scope {string} and claim {string} = {string}")
+    fun `the caller has a valid IdP JWS token with custom claim`(subject: String, scope: String, claimName: String, claimValue: String) {
+        val token = Jwts.builder()
+            .header().keyId(KID).and()
+            .issuer(ISSUER)
+            .subject(subject)
+            .claim("scope", scope)
             .claim(claimName, claimValue)
             .issuedAt(Date.from(Instant.now()))
             .expiration(Date.from(Instant.now().plusSeconds(3600)))
@@ -178,13 +194,40 @@ class IdpAuthStepsDefinition(
         assertEquals(expectedUserId, body["userId"])
     }
 
-    @Then("the response contains privilege {string}")
-    fun `the response contains privilege`(privilege: String) {
+    @Then("the response contains scope {string}")
+    fun `the response contains scope`(expected: String) {
         val body = getOrFetchResponseBody()
 
         @Suppress("UNCHECKED_CAST")
-        val privileges = body["privileges"] as List<String>
-        assertTrue(privileges.contains(privilege), "Expected privilege '$privilege' in $privileges")
+        val scope = body["scope"] as List<String>
+        assertTrue(scope.contains(expected), "Expected scope '$expected' in $scope")
+    }
+
+    @Then("the response contains role {string}")
+    fun `the response contains role`(expected: String) {
+        val body = getOrFetchResponseBody()
+
+        @Suppress("UNCHECKED_CAST")
+        val roles = body["roles"] as List<String>
+        assertTrue(roles.contains(expected), "Expected role '$expected' in $roles")
+    }
+
+    @Then("the response does not contain scope {string}")
+    fun `the response does not contain scope`(unexpected: String) {
+        val body = getOrFetchResponseBody()
+
+        @Suppress("UNCHECKED_CAST")
+        val scope = body["scope"] as List<String>
+        assertTrue(!scope.contains(unexpected), "Expected '$unexpected' to stay out of scope, found $scope")
+    }
+
+    @Then("the response contains no roles")
+    fun `the response contains no roles`() {
+        val body = getOrFetchResponseBody()
+
+        @Suppress("UNCHECKED_CAST")
+        val roles = body["roles"] as List<String>
+        assertTrue(roles.isEmpty(), "Expected no roles, found $roles")
     }
 
     private fun getOrFetchResponseBody(): Map<String, Any> {

@@ -36,6 +36,14 @@ fun SecurityConfiguration.toAuthNConfig(): AuthNConfig = AuthNConfig(
             tokenMinutes = jwt.expiration.tokenMinutes,
             refreshTokenMinutes = jwt.expiration.refreshTokenMinutes,
         ),
+        claims = ClaimsMapping(
+            scope = jwt.claims.scope,
+            roles = jwt.claims.roles,
+        ),
+        audience = jwt.audience,
+        requireAudience = jwt.requireAudience,
+        requireIssuer = jwt.requireIssuer,
+        clockSkewSeconds = jwt.clockSkewSeconds,
     ),
     idp = IdpConfig(
         issuerUri = idp.issuerUri,
@@ -43,7 +51,8 @@ fun SecurityConfiguration.toAuthNConfig(): AuthNConfig = AuthNConfig(
         jwksCacheTtlMinutes = idp.jwksCacheTtlMinutes,
         claims = ClaimsMapping(
             subject = idp.claims.subject,
-            privileges = idp.claims.privileges,
+            scope = idp.claims.scope,
+            roles = idp.claims.roles,
         ),
         encryption = IdpEncryptionConfig(
             algorithm = idp.encryption.algorithm,

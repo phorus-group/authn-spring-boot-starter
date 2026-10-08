@@ -245,8 +245,8 @@ class ApiKeyFilterConfiguration(
  */
 class JwtConfiguration(
     /**
-     * The `iss` (issuer) claim written into every token created by this library.
-     * Also used to validate incoming tokens in [AuthMode.STANDALONE] and [AuthMode.IDP_BRIDGE] modes.
+     * The `iss` (issuer) claim written into every token created by this library. An incoming token's
+     * `iss` is checked against it only when [requireIssuer] is `true`.
      */
     var issuer: String? = null,
 
@@ -267,6 +267,71 @@ class JwtConfiguration(
     /** Access-token and refresh-token lifetimes. */
     @NestedConfigurationProperty
     var expiration: JwtExpirationConfiguration = JwtExpirationConfiguration(),
+
+    /** Claim names for the tokens this library issues and validates. */
+    @NestedConfigurationProperty
+    var claims: JwtClaimsMapping = JwtClaimsMapping(),
+
+    /**
+     * The `aud` (audience) claim written into every token created by this library, naming the service
+     * the token is for, per [RFC 7519 §4.1.3](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3).
+     */
+    var audience: String? = null,
+
+    /**
+     * When `true`, an incoming token is accepted only if its `aud` claim holds [audience].
+     * Needs [audience] to be set.
+     *
+     * An absent or different `aud` is refused, so a running service sets [audience], waits out the
+     * longest lifetime in [expiration], and turns this on after that.
+     */
+    var requireAudience: Boolean = false,
+
+    /**
+     * When `true`, an incoming token is accepted only if its `iss` claim holds [issuer].
+     * Needs [issuer] to be set.
+     *
+     * An absent or different `iss` is refused, so a running service sets [issuer], waits out
+     * the longest lifetime in [expiration], and turns this on after that.
+     */
+    var requireIssuer: Boolean = false,
+
+    /**
+     * How far an `exp` or `nbf` claim may be off before it is held against the token, which covers
+     * clock drift between the issuing and validating services per
+     * [RFC 7519 §4.1.4](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4).
+     */
+    var clockSkewSeconds: Long = 0,
+)
+
+/**
+ * Claim names for the tokens this library issues and validates.
+ *
+ * Each default is the claim name its RFC assigns, so a token this library both writes and reads needs
+ * no configuration here.
+ *
+ * A name has to be a flat claim name. The issuing side writes it as a top-level claim, so
+ * `realm_access.roles` would become one key containing a dot:
+ *
+ * ```json
+ * { "realm_access.roles": ["ADMIN"] }
+ * ```
+ *
+ * while the reading side treats a dot as a path into a nested object:
+ *
+ * ```json
+ * { "realm_access": { "roles": ["ADMIN"] } }
+ * ```
+ *
+ * Dot notation belongs to [IdpClaimsMapping], where the token comes from somewhere else. A dotted name
+ * here is refused at startup.
+ *
+ * @property scope The claim that holds delegated application authority. Defaults to `"scope"`.
+ * @property roles The claim that holds subject entitlement. Defaults to `"roles"`.
+ */
+class JwtClaimsMapping(
+    var scope: String = "scope",
+    var roles: String = "roles",
 )
 
 /**
@@ -369,15 +434,26 @@ class IdpEncryptionConfiguration(
 /**
  * Maps IdP token claim names to the internal claim names expected by auth-commons.
  *
- * Different IdPs use different claim names (e.g. Keycloak uses `realm_access.roles`,
- * Auth0 uses `permissions`, Azure AD uses `roles`). This mapping normalizes them.
+ * Different IdPs name these claims differently, so Keycloak serves roles under `realm_access.roles`,
+ * Auth0 under `permissions` and Azure AD scope under `scp`. This mapping normalizes them.
+ *
+ * A value containing `.` is read as a path into a nested object, which is what Keycloak's
+ * `realm_access.roles` requires.
+ *
+ * `roles` and `scope` are two independent claims, each read into its own field. Per
+ * [RFC 6749 §3.3](https://datatracker.ietf.org/doc/html/rfc6749#section-3.3) `scope` is what the
+ * calling application was granted consent to do, while `roles`, registered by
+ * [RFC 9068 §7.2](https://datatracker.ietf.org/doc/html/rfc9068#section-7.2), is a property of the
+ * subject regardless of which application calls.
  *
  * @property subject The claim that contains the user identifier. Defaults to `"sub"`.
- * @property privileges The claim that contains scopes / roles / permissions. Defaults to `"scope"`.
+ * @property scope The claim that holds delegated application authority. Defaults to `"scope"`.
+ * @property roles The claim that holds subject entitlement. Defaults to `"roles"`.
  */
 class IdpClaimsMapping(
     var subject: String = "sub",
-    var privileges: String = "scope",
+    var scope: String = "scope",
+    var roles: String = "roles",
 )
 
 /**

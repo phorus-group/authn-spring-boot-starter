@@ -30,7 +30,7 @@ available to your controllers and services automatically.
 - [Core concepts](#core-concepts)
   - [Token formats](#token-formats)
   - [Identity Providers (IdPs)](#identity-providers-idps)
-  - [Privileges](#privileges)
+  - [Roles and scope](#roles-and-scope)
 - [Authentication modes](#authentication-modes)
   - [STANDALONE](#standalone-default)
   - [IDP_BRIDGE](#idp_bridge)
@@ -81,7 +81,8 @@ A token contains **claims**, pieces of information embedded inside it. Common cl
 - **Subject (sub)**: who the user is (usually their ID)
 - **Issuer (iss)**: who created the token (your service or an Identity Provider)
 - **Expiration (exp)**: when the token stops being valid
-- **Privileges/scopes**: what the user is allowed to do
+- **Roles (roles)**: what the subject is
+- **Scope (scope)**: what the calling application may do on the subject's behalf
 
 The standard format for these tokens is **JWT** (JSON Web Token). A JWT encodes the claims as JSON,
 then either signs, encrypts, or both signs and encrypts the result into a compact string that can be
@@ -95,7 +96,7 @@ sent as an HTTP header.
 A typical token-based authentication flow looks like this:
 
 1. The client sends a login request with credentials (e.g. `POST /auth/login` with email and password)
-2. The server verifies the credentials, creates a token containing the user's ID and privileges, and returns it
+2. The server verifies the credentials, creates a token containing the user's ID and roles, and returns it
 3. For every subsequent request, the client includes the token in the `Authorization` header:
    `Authorization: Bearer <token>`
 4. The server reads the header, validates the token (checks the signature, expiration, etc.),
@@ -212,7 +213,7 @@ class AuthController(
         if (!passwordEncoder.matches(request.password, user.hashedPassword))
             throw Unauthorized("Invalid credentials")
 
-        return tokenFactory.createAccessToken(user.id, user.privileges)
+        return tokenFactory.createAccessToken(user.id, claims = mapOf("roles" to user.roles))
     }
 
     // Protected: requires a valid token in the Authorization header
@@ -229,7 +230,7 @@ class AuthController(
 ```
 POST /auth/login                           -> no token needed (ignored path)
   Request:  { "email": "a@b.com", "password": "secret" }
-  Response: { "token": "eyJhbGci"..., "privileges": ["read", "write"] }
+  Response: { "token": "eyJhbGci"..., "roles": ["ADMIN"], "scope": [] }
 
 GET /me                                    -> token required
   Header:   Authorization: Bearer eyJhbGci...
@@ -248,13 +249,13 @@ Here is what happened behind the scenes in the quick start example:
 
 1. **`POST /auth/login`** matched the `ignored-paths` configuration, so the library let the request
    through without requiring a token. Your code verified the credentials and used `TokenFactory`
-   to create a token. The token contains the user's ID and privileges as signed and encrypted claims.
+   to create a token. The token contains the user's ID and roles as signed and encrypted claims.
 
 2. **`GET /me`** did not match any ignored path, so the library's `AuthFilter` intercepted it:
    - It extracted the token from the `Authorization: Bearer <token>` header
    - It auto-detected the token format and validated it
    - It checked that the token was not expired and that the issuer matched
-   - It extracted the user's ID, privileges, and any custom properties from the claims
+   - It extracted the user's ID, roles, scope, and any custom properties from the claims
    - It ran all registered `Validator` beans to perform custom claim validation (if any)
    - It made that information available to your code as an `AuthContextData` object
 
@@ -310,8 +311,9 @@ Both approaches give you an `AuthContextData` object with the same fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `userId` | `UUID` | The authenticated user's identifier |
-| `privileges` | `List<String>` | The user's roles, permissions, or scopes |
-| `properties` | `Map<String, String>` | Any custom claims embedded in the token |
+| `roles` | `List<String>` | What the subject is, from the `roles` claim |
+| `scope` | `List<String>` | What the calling application may do, from the `scope` claim |
+| `properties` | `Map<String, Any?>` | Every claim in the token, with its value as the token carried it |
 
 ***
 
@@ -337,13 +339,25 @@ configurable claim mapping for different providers.
 See [authn-core - Identity Providers](https://github.com/phorus-group/authn-core#identity-providers-idps)
 for the full IdP claim mapping reference and supported formats.
 
-### Privileges
+### Roles and scope
 
-Privileges are strings extracted from the token that describe what the user can do, available
-via `AuthContextData.privileges`. The library reads them from the token, it doesn't manage
-where they come from. Different IdPs use different claim names (`scope`, `permissions`, `roles`, etc.),
-configured via `idp.claims.privileges`.
-See [authn-core - Privileges](https://github.com/phorus-group/authn-core#privileges).
+A token carries two independent lists of authority, read into `AuthContextData.roles` and
+`AuthContextData.scope`. `roles` holds what the subject is, per
+[RFC 9068 §7.2](https://datatracker.ietf.org/doc/html/rfc9068#section-7.2). `scope` holds what the
+calling application was granted consent to do on the subject's behalf, per
+[RFC 6749 §3.3](https://datatracker.ietf.org/doc/html/rfc6749#section-3.3).
+
+Decide authority from `roles`. `scope` carries two unrelated kinds of value: an OIDC identity scope
+such as `openid profile email`, which grants access to identity claims, and an API scope, which names
+an action. A check written as `scope.isEmpty() || action in scope` therefore refuses every request
+from a client whose provider sends the OIDC values, because the list is not empty and holds no
+actions. Narrow by `scope` only where the authorization server issues API scopes in the same
+vocabulary as the actions being checked, and make that an explicit choice in the consumer.
+
+Whoever creates the token decides what goes in the two lists.
+`jwt.claims` names the claims this service writes and reads, and `idp.claims` names the claims to
+read from an identity provider that uses other names.
+See [authn-core - Roles and scope](https://github.com/phorus-group/authn-core#roles-and-scope).
 
 ## Authentication modes
 
@@ -412,7 +426,7 @@ class AuthController(
     @PostMapping("/auth/login")
     suspend fun login(@RequestBody request: LoginRequest): AccessToken {
         val user = userService.verifyCredentials(request.email, request.password)
-        return tokenFactory.createAccessToken(user.id, user.privileges)
+        return tokenFactory.createAccessToken(user.id, claims = mapOf("roles" to user.roles))
     }
 
     @GetMapping("/me")
@@ -424,7 +438,7 @@ class AuthController(
     @PostMapping("/auth/token")
     suspend fun refresh(): AccessToken {
         val auth = AuthContext.context.get()
-        return tokenFactory.createAccessToken(auth.userId, auth.privileges)
+        return tokenFactory.createAccessToken(auth.userId, claims = mapOf("roles" to auth.roles))
     }
 }
 ```
@@ -467,7 +481,8 @@ group:
         jwk-set-uri: https://your-idp.example.com/.well-known/jwks.json
         claims:
           subject: sub
-          privileges: permissions
+          scope: scope
+          roles: permissions
 ```
 
 This requires both sets of configuration: `jwt.*` for creating your own tokens, and `idp.*` for
@@ -499,8 +514,8 @@ class BridgeAuthController(
         val idpData = idpAuthenticator.authenticate(idpToken)
 
         // Optionally enrich with data from your database
-        val user = userService.findOrCreate(idpData.userId, idpData.privileges)
-        return tokenFactory.createAccessToken(user.id, user.privileges, idpData.properties)
+        val user = userService.findOrCreate(idpData.userId, idpData.roles)
+        return tokenFactory.createAccessToken(user.id, claims = mapOf("roles" to user.roles))
     }
 
     private suspend fun exchangeCodeForToken(code: String, redirectUri: String): String {
@@ -550,8 +565,8 @@ class BridgeAuthController(
     suspend fun bridgeLogin(@RequestBody idpToken: String): AccessToken {
         val idpData = idpAuthenticator.authenticate(idpToken)
 
-        val user = userService.findOrCreate(idpData.userId, idpData.privileges)
-        return tokenFactory.createAccessToken(user.id, user.privileges, idpData.properties)
+        val user = userService.findOrCreate(idpData.userId, idpData.roles)
+        return tokenFactory.createAccessToken(user.id, claims = mapOf("roles" to user.roles))
     }
 
     @GetMapping("/me")
@@ -592,7 +607,8 @@ group:
         jwk-set-uri: https://your-idp.example.com/.well-known/jwks.json
         claims:
           subject: sub
-          privileges: scope
+          scope: scope
+          roles: roles
 ```
 
 No `jwt.*` configuration is needed since the service does not create tokens.
@@ -616,7 +632,10 @@ class ApiController(
     @PostMapping("/items")
     suspend fun createItem(@RequestBody request: CreateItemRequest): Item {
         val auth = AuthContext.context.get()
-        require("items:write" in auth.privileges) { "Insufficient privileges" }
+
+        val mayWrite = "ITEM_WRITER" in auth.roles
+
+        require(mayWrite) { "Insufficient authority" }
         return itemService.create(auth.userId, request)
     }
 }
@@ -638,7 +657,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://your-tenant.auth0.com/.well-known/jwks.json
   claims:
     subject: sub             # format: "auth0|abc123"
-    privileges: permissions  # or "scope" for OIDC scopes
+    scope: scope
+    roles: permissions
 ```
 </details>
 
@@ -651,7 +671,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://login.microsoftonline.com/{tenant-id}/discovery/v2.0/keys
   claims:
     subject: oid             # Azure AD uses "oid" for user object ID
-    privileges: roles        # or "scp" for delegated permissions
+    scope: scp
+    roles: roles
 ```
 </details>
 
@@ -664,7 +685,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
   claims:
     subject: sub
-    privileges: scope
+    scope: scope
+    roles: <your custom claim>
 ```
 </details>
 
@@ -677,7 +699,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://keycloak.example.com/realms/{realm}/protocol/openid-connect/certs
   claims:
     subject: sub
-    privileges: realm_access.roles   # dot-notation for nested claims
+    scope: scope
+    roles: realm_access.roles   # dot notation for nested claims
 ```
 </details>
 
@@ -690,7 +713,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://your-domain.okta.com/oauth2/{server-id}/v1/keys
   claims:
     subject: sub
-    privileges: scp          # or "groups"
+    scope: scp
+    roles: groups
 ```
 </details>
 
@@ -706,7 +730,8 @@ group.phorus.security.idp:
   jwk-set-uri: https://idp.example.com/.well-known/jwks.json
   claims:
     subject: sub
-    privileges: scope
+    scope: scope
+    roles: roles
   encryption:
     algorithm: RSA                              # or "EC", must match the key type
     encoded-private-key: "<base64 PKCS#8 private key>"
@@ -950,7 +975,7 @@ class AuthController(
     @PostMapping("/auth/login")
     suspend fun login(@RequestBody request: LoginRequest): LoginResponse {
         val user = userService.verifyCredentials(request.email, request.password)
-        val accessToken = tokenFactory.createAccessToken(user.id, user.privileges)
+        val accessToken = tokenFactory.createAccessToken(user.id, claims = mapOf("roles" to user.roles))
         val refreshToken = tokenFactory.createRefreshToken(user.id, expires = true)
         return LoginResponse(accessToken = accessToken.token, refreshToken = refreshToken)
     }
@@ -959,7 +984,7 @@ class AuthController(
     @PostMapping("/auth/token")
     suspend fun refresh(): AccessToken {
         val auth = AuthContext.context.get()
-        return tokenFactory.createAccessToken(auth.userId, auth.privileges)
+        return tokenFactory.createAccessToken(auth.userId, claims = mapOf("roles" to auth.roles))
     }
 }
 ```
@@ -984,8 +1009,11 @@ additional JWT claims and are available later via `AuthContextData.properties`.
 // When creating the token, pass a properties map
 val token = tokenFactory.createAccessToken(
     userId = user.id,
-    privileges = user.privileges,
-    properties = mapOf("deviceId" to deviceId, "tenantId" to tenantId),
+    claims = mapOf(
+        "roles" to user.roles,
+        "deviceId" to deviceId,
+        "tenantId" to tenantId,
+    ),
 )
 
 // Later, in any controller or service handling a request with this token
@@ -995,7 +1023,7 @@ val deviceId = auth.properties["deviceId"]
 ```
 
 This is useful for multi-tenant applications, device tracking, or any scenario where you need
-extra context about the authenticated session beyond the user ID and privileges.
+extra context about the authenticated session beyond the user ID and its authority.
 
 </details>
 
@@ -1021,16 +1049,16 @@ class DeviceValidator(
     override fun accepts(property: String): Boolean = property == Claims.ID
 
     // Is the claim value valid?
-    override fun isValid(value: String, properties: Map<String, String>): Boolean {
-        val device = deviceRepository.findByJti(value) ?: return false
+    override fun isValid(value: Any?, properties: Map<String, Any?>): Boolean {
+        val device = deviceRepository.findByJti(value.toString()) ?: return false
         return !device.disabled
     }
 }
 ```
 
 The `accepts` method receives the claim name. Return `true` for the claims you want to validate.
-The `isValid` method receives the claim value and all token properties. Return `false` to reject
-the token.
+The `isValid` method receives the claim value and all token properties, each carrying the value as
+the token carried it, so a JSON array arrives as a `List`. Return `false` to reject the token.
 
 You can register multiple validators. Each one is called for every claim it accepts.
 
@@ -1082,7 +1110,7 @@ class WebSocketHandler(
 ) {
     fun onConnect(token: String) {
         val authData = authenticator.authenticate(token)
-        // authData.userId, authData.privileges, authData.properties
+        // authData.userId, authData.roles, authData.scope, authData.properties
     }
 }
 ```
@@ -1482,6 +1510,12 @@ phorus:
 | `group.phorus.security.jwt.encryption.encoded-private-key` | | Base64-encoded PKCS#8 encryption private key |
 | `group.phorus.security.jwt.expiration.token-minutes` | `10` | Access token lifetime in minutes |
 | `group.phorus.security.jwt.expiration.refresh-token-minutes` | `1440` | Refresh token lifetime in minutes (default: 24h) |
+| `group.phorus.security.jwt.claims.scope` | `scope` | Claim name holding delegated application authority |
+| `group.phorus.security.jwt.claims.roles` | `roles` | Claim name holding subject entitlement |
+| `group.phorus.security.jwt.audience` | | Audience claim (`aud`) embedded in created tokens |
+| `group.phorus.security.jwt.require-audience` | `false` | Accept an incoming token only if its `aud` holds `jwt.audience`. An absent or different `aud` is refused |
+| `group.phorus.security.jwt.require-issuer` | `false` | Accept an incoming token only if its `iss` holds `jwt.issuer`. An absent or different `iss` is refused |
+| `group.phorus.security.jwt.clock-skew-seconds` | `0` | Allowed drift on `exp` and `nbf` between issuing and validating services |
 | `group.phorus.security.idp.issuer-uri` | | IdP issuer identifier |
 | `group.phorus.security.idp.jwk-set-uri` | | IdP JWKS endpoint URL |
 | `group.phorus.security.idp.jwks-cache-ttl-minutes` | `60` | JWKS cache TTL in minutes |
@@ -1489,7 +1523,8 @@ phorus:
 | `group.phorus.security.idp.client-id` | | OAuth 2.0 client ID |
 | `group.phorus.security.idp.client-secret` | | OAuth 2.0 client secret |
 | `group.phorus.security.idp.claims.subject` | `sub` | Claim name for user identifier |
-| `group.phorus.security.idp.claims.privileges` | `scope` | Claim name for roles/permissions |
+| `group.phorus.security.idp.claims.scope` | `scope` | Claim name for delegated application authority |
+| `group.phorus.security.idp.claims.roles` | `roles` | Claim name for subject entitlement; may use dot notation |
 | `group.phorus.security.idp.encryption.algorithm` | `RSA` | Key algorithm for decrypting IdP JWE tokens (e.g. `RSA`, `EC`) |
 | `group.phorus.security.idp.encryption.encoded-private-key` | | Base64-encoded PKCS#8 private key for decrypting IdP JWE/nested JWE tokens |
 | `group.phorus.security.password-encoder.cpu-cost` | `8192` | SCrypt CPU/memory cost (N). Must be a power of 2 |
@@ -1498,6 +1533,10 @@ phorus:
 | `group.phorus.security.password-encoder.key-length` | `32` | Derived key length in bytes |
 | `group.phorus.security.password-encoder.salt-length` | `16` | Salt length in bytes |
 | `group.phorus.security.metrics.enabled` | `true` | Enable/disable authentication and token creation metrics (requires `MeterRegistry` on classpath) |
+
+Turning on `require-audience` or `require-issuer` refuses every token minted before the matching
+value was set. On a running service, set `jwt.audience` or `jwt.issuer` first, wait out the longest
+lifetime under `jwt.expiration`, then turn the flag on.
 
 ## Keys and algorithms
 

@@ -26,7 +26,7 @@ class ApiKeyProtectedController {
         return mapOf(
             "keyId" to apiKey.keyId,
             "userId" to auth.userId.toString(),
-            "privileges" to auth.privileges,
+            "scope" to auth.scope,
         )
     }
 }

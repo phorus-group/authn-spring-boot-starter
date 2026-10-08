@@ -47,3 +47,17 @@ Feature: Auth operations
       | type   | key           | value                |
       | header | Authorization | Bearer {accessToken} |
     Then the service returns HTTP 401
+
+  Scenario: Roles minted through the claims overload reach the handler
+    Given the given User exists:
+      | name      | email           | passwordHash |
+      | rolesUser | roles@test.com  | hash123      |
+    And the caller has a token for that user with roles "ADMIN VIEWER"
+    When the GET "/protected/me" endpoint is called:
+      | type   | key           | value                |
+      | header | Authorization | Bearer {accessToken} |
+    Then the service returns HTTP 200
+    And the minted token carries roles "ADMIN VIEWER"
+    And the response contains role "ADMIN"
+    And the response contains role "VIEWER"
+    And the response does not contain scope "ADMIN"

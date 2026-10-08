@@ -8,6 +8,6 @@ import org.springframework.stereotype.Service
 class TestValidatorImpl : Validator {
     override fun accepts(property: String): Boolean = property == "tokenThingy"
 
-    override fun isValid(value: String, properties: Map<String, String>): Boolean =
-        properties[Claims.SUBJECT] != null && value.lowercase() == "true"
+    override fun isValid(value: Any?, properties: Map<String, Any?>): Boolean =
+        properties[Claims.SUBJECT] != null && value.toString().lowercase() == "true"
 }

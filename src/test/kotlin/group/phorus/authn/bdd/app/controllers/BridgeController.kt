@@ -54,7 +54,7 @@ class BridgeController(
 
         val accessToken = tokenFactory.createAccessToken(
             user.id!!,
-            authData.privileges,
+            authData.scope,
             properties,
         )
 

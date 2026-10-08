@@ -29,13 +29,19 @@ class TokenFactoryImpl(
 
     override suspend fun createAccessToken(
         userId: UUID,
-        privileges: List<String>,
+        scope: List<String>,
         properties: Map<String, String>,
-    ): AccessToken = delegate.createAccessToken(userId, privileges, properties)
+    ): AccessToken = delegate.createAccessToken(userId, scope, properties)
 
     override suspend fun createRefreshToken(
         userId: UUID,
         expires: Boolean,
         properties: Map<String, String>,
     ): String = delegate.createRefreshToken(userId, expires, properties)
+
+    override suspend fun createAccessToken(userId: UUID, claims: Map<String, Any>): AccessToken =
+        delegate.createAccessToken(userId, claims)
+
+    override suspend fun createRefreshToken(userId: UUID, claims: Map<String, Any>, expires: Boolean): String =
+        delegate.createRefreshToken(userId, claims, expires)
 }

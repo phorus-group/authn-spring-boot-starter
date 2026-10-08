@@ -29,7 +29,7 @@ class UserContextConverterTest {
             userId = TEST_USER_ID,
             tokenType = TokenType.ACCESS_TOKEN,
             jti = "test-jti",
-            privileges = listOf("read", "write"),
+            scope = listOf("read", "write"),
             properties = emptyMap(),
         )
 

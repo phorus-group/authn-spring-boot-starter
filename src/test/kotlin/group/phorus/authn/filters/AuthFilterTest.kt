@@ -45,7 +45,7 @@ class AuthFilterTest {
             userId = TEST_USER_ID,
             tokenType = TokenType.ACCESS_TOKEN,
             jti = "test-jti",
-            privileges = listOf("read"),
+            scope = listOf("read"),
             properties = emptyMap(),
         )
 
@@ -53,7 +53,7 @@ class AuthFilterTest {
             userId = TEST_USER_ID,
             tokenType = TokenType.REFRESH_TOKEN,
             jti = "test-jti-refresh",
-            privileges = emptyList(),
+            scope = emptyList(),
             properties = emptyMap(),
         )
 
@@ -455,7 +455,7 @@ class AuthFilterTest {
     inner class PrivilegeGates {
 
         private fun withPrivileges(vararg privileges: String) =
-            mockAuthenticator(ACCESS_AUTH_DATA.copy(privileges = privileges.toList()))
+            mockAuthenticator(ACCESS_AUTH_DATA.copy(scope = privileges.toList()))
 
         @Test
         fun `allows access when user holds the required privilege`() {

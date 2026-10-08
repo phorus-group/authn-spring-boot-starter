@@ -14,7 +14,8 @@ class ProtectedController {
         val auth = AuthContext.context.get()
         return mapOf(
             "userId" to auth.userId.toString(),
-            "privileges" to auth.privileges,
+            "roles" to auth.roles,
+            "scope" to auth.scope,
         )
     }
 }

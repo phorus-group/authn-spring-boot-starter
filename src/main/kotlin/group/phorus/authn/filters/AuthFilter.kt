@@ -131,7 +131,7 @@ class AuthFilter(
 
         val authContextData = authData.mapTo<AuthContextData>()!!
 
-        checkPrivilegeGates(tokenConfig.privilegeGates, path, method, authContextData.privileges)
+        checkPrivilegeGates(tokenConfig.privilegeGates, path, method, authContextData.scope)
 
         return withContext(AuthContext.context.asContextElement(value = authContextData)) {
             chain.filter(exchange)

@@ -44,7 +44,8 @@ group:
         jwk-set-uri: http://localhost:18089/.well-known/jwks.json
         claims:
           subject: sub
-          privileges: scope
+          scope: scope
+          roles: roles
         encryption:
           algorithm: RSA
           encoded-private-key: ${IDP_TEST_ENCRYPTION_PRIVATE_KEY:}
