@@ -407,7 +407,7 @@ Key configuration points:
   optionally restrict by HTTP method (e.g. only `POST /user` is public, but `GET /user` requires auth).
 - **`protected-paths`**: the inverse of `ignored-paths`. Only the listed paths require authentication;
   everything else is skipped. Only one of `ignored-paths` or `protected-paths` may be used per filter.
-- **`refresh-token-path`**: the only path that accepts refresh tokens. All other paths reject them.
+- **`refresh-token-path`**: the only path that accepts refresh tokens, in Spring PathPattern syntax. All other paths reject them.
 - **`token-format`**: how the library creates tokens. Defaults to `JWS` (see [Token formats](#token-formats)).
 - **`expiration`**: access tokens default to 10 minutes, refresh tokens to 24 hours.
 
@@ -496,13 +496,22 @@ The frontend sends the authorization code it received from the IdP callback. The
 exchanges it for a token, validates it, and creates its own token.
 
 ```kotlin
+// The token exchange belongs to your service, so the endpoint and client credentials are
+// your own configuration properties
+@ConfigurationProperties(prefix = "my-service.idp")
+class IdpClientConfiguration(
+    var tokenUri: String? = null,
+    var clientId: String? = null,
+    var clientSecret: String? = null,
+)
+
 @RestController
 class BridgeAuthController(
     private val idpAuthenticator: IdpAuthenticator,
     private val tokenFactory: TokenFactory,
     private val userService: UserService,
     private val webClient: WebClient,
-    private val securityConfiguration: SecurityConfiguration,
+    private val idpClient: IdpClientConfiguration,
 ) {
     @PostMapping("/auth/bridge")
     suspend fun bridgeLogin(@RequestBody request: CodeExchangeRequest): AccessToken {
@@ -518,16 +527,15 @@ class BridgeAuthController(
     }
 
     private suspend fun exchangeCodeForToken(code: String, redirectUri: String): String {
-        val idp = securityConfiguration.idp
         val response = webClient.post()
-            .uri(idp.tokenUri!!)
+            .uri(idpClient.tokenUri!!)
             .bodyValue(
                 mapOf(
                     "grant_type" to "authorization_code",
                     "code" to code,
                     "redirect_uri" to redirectUri,
-                    "client_id" to idp.clientId!!,
-                    "client_secret" to idp.clientSecret!!,
+                    "client_id" to idpClient.clientId!!,
+                    "client_secret" to idpClient.clientSecret!!,
                 )
             )
             .retrieve()
@@ -963,7 +971,8 @@ long-lived tokens (24 hours by default) that can only be used on a single endpoi
 access token.
 
 The library enforces this restriction automatically. Refresh tokens are only accepted on the path
-configured in `refresh-token-path`. Any other path rejects them with a 401.
+configured in `refresh-token-path`, which uses Spring PathPattern syntax. Any other path rejects
+them with a 401.
 
 ```kotlin
 @RestController
@@ -1432,7 +1441,7 @@ phorus:
 |----------|---------|-------------|
 | `group.phorus.security.mode` | `STANDALONE` | Authentication mode (`STANDALONE`, `IDP_BRIDGE`, or `IDP_DELEGATED`) |
 | `group.phorus.security.filters.token.enabled` | `false` | Enable/disable the token (JWT) authentication filter |
-| `group.phorus.security.filters.token.refresh-token-path` | | Path where refresh tokens are accepted |
+| `group.phorus.security.filters.token.refresh-token-path` | | Path where refresh tokens are accepted. Uses Spring PathPattern syntax |
 | `group.phorus.security.filters.token.ignored-paths[].path` | | Paths that bypass token authentication (mutually exclusive with `protected-paths`) |
 | `group.phorus.security.filters.token.ignored-paths[].method` | | Optional HTTP method constraint |
 | `group.phorus.security.filters.token.protected-paths[].path` | | Only these paths require token authentication (mutually exclusive with `ignored-paths`) |
@@ -1466,9 +1475,6 @@ phorus:
 | `group.phorus.security.idp.issuer-uri` | | IdP issuer identifier |
 | `group.phorus.security.idp.jwk-set-uri` | | IdP JWKS endpoint URL |
 | `group.phorus.security.idp.jwks-cache-ttl-minutes` | `60` | JWKS cache TTL in minutes |
-| `group.phorus.security.idp.token-uri` | | IdP token endpoint (for refresh) |
-| `group.phorus.security.idp.client-id` | | OAuth 2.0 client ID |
-| `group.phorus.security.idp.client-secret` | | OAuth 2.0 client secret |
 | `group.phorus.security.idp.claims.subject` | `sub` | Claim name for user identifier |
 | `group.phorus.security.idp.claims.scope` | `scope` | Claim name for delegated application authority |
 | `group.phorus.security.idp.claims.roles` | `roles` | Claim name for subject entitlement; may use dot notation |

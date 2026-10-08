@@ -45,9 +45,10 @@ import org.springframework.web.server.ServerWebExchange
  * If both are configured, the filter throws an [IllegalStateException].
  *
  * ### Refresh tokens
- * Refresh tokens are only accepted on the configured
- * [group.phorus.authn.config.TokenFilterConfiguration.refreshTokenPath];
- * all other paths reject them with a 401.
+ * Refresh tokens are only accepted on the path matching
+ * [group.phorus.authn.config.TokenFilterConfiguration.refreshTokenPath], which uses the same
+ * [PathPattern][org.springframework.web.util.pattern.PathPattern] syntax as the path lists above.
+ * All other paths reject them with a 401.
  *
  * ### Filter ordering
  * This filter runs **after** [ApiKeyFilter] so that API key validation can fail fast
@@ -113,13 +114,13 @@ class AuthFilter(
         val authData = metrics?.timeAuthentication(mode) { performAuthentication() }
             ?: performAuthentication()
 
-        if (authData.tokenType == TokenType.REFRESH_TOKEN && tokenConfig.refreshTokenPath == null)
-            throw Unauthorized("Invalid access token")
+        if (authData.tokenType == TokenType.REFRESH_TOKEN) {
+            val refreshTokenPath = tokenConfig.refreshTokenPath
+                ?: throw Unauthorized("Invalid access token")
 
-        if (authData.tokenType == TokenType.REFRESH_TOKEN
-            && tokenConfig.refreshTokenPath != null
-            && !path.contains(tokenConfig.refreshTokenPath!!))
-            throw Unauthorized("Invalid access token")
+            if (!matchesRefreshTokenPath(refreshTokenPath, path))
+                throw Unauthorized("Invalid access token")
+        }
 
         val authContextData = authData.mapTo<AuthContextData>()!!
 

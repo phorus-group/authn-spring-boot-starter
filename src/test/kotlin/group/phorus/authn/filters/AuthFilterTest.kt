@@ -409,6 +409,37 @@ class AuthFilterTest {
         }
 
         @Test
+        fun `rejects refresh token on a path extending the refresh path`() {
+            val authenticator = mockAuthenticator(REFRESH_AUTH_DATA)
+            val config = buildConfig(refreshTokenPath = "/auth/token")
+            val filter = AuthFilter(config, authenticator, idpAuthenticatorProvider(), emptyMetricsProvider())
+
+            assertThrows<Unauthorized> {
+                invokeFilter(filter, buildExchange(path = "/auth/token/extra"))
+            }
+        }
+
+        @Test
+        fun `rejects refresh token on a path prefixed by the refresh path`() {
+            val authenticator = mockAuthenticator(REFRESH_AUTH_DATA)
+            val config = buildConfig(refreshTokenPath = "/auth/token")
+            val filter = AuthFilter(config, authenticator, idpAuthenticatorProvider(), emptyMetricsProvider())
+
+            assertThrows<Unauthorized> {
+                invokeFilter(filter, buildExchange(path = "/auth/token-stealer"))
+            }
+        }
+
+        @Test
+        fun `accepts refresh token on a pattern refresh path`() {
+            val authenticator = mockAuthenticator(REFRESH_AUTH_DATA)
+            val config = buildConfig(refreshTokenPath = "/auth/{action}/token")
+            val filter = AuthFilter(config, authenticator, idpAuthenticatorProvider(), emptyMetricsProvider())
+
+            invokeFilter(filter, buildExchange(path = "/auth/renew/token"))
+        }
+
+        @Test
         fun `allows access token on any path`() {
             val authenticator = mockAuthenticator(ACCESS_AUTH_DATA)
             val config = buildConfig(refreshTokenPath = "/auth/token")

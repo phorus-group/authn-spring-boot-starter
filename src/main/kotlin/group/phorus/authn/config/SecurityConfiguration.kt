@@ -140,7 +140,7 @@ class FiltersConfiguration(
  * For details of the path pattern syntax see [PathPattern][org.springframework.web.util.pattern.PathPattern].
  *
  * @property enabled Whether the token filter is active. Defaults to `false`.
- * @property refreshTokenPath Path where refresh tokens are accepted. All other paths reject them.
+ * @property refreshTokenPath Path where refresh tokens are accepted, in Spring PathPattern syntax. All other paths reject them.
  * @property ignoredPaths Paths that bypass token authentication. Uses Spring PathPattern syntax. Mutually exclusive with [protectedPaths].
  * @property protectedPaths Paths that require token authentication; all others are skipped. Uses Spring PathPattern syntax. Mutually exclusive with [ignoredPaths].
  */
@@ -351,9 +351,6 @@ class JwtEncryptionConfiguration(
  * @property jwkSetUri URL of the IdP's JWKS endpoint (e.g. `https://idp.example.com/.well-known/jwks.json`).
  *     Public keys are fetched from here to verify IdP token signatures.
  * @property jwksCacheTtlMinutes How long fetched JWKS keys are cached before a refresh. Defaults to `60`.
- * @property tokenUri The IdP's token endpoint, used for token refresh in [AuthMode.IDP_DELEGATED] mode.
- * @property clientId OAuth 2.0 client identifier for token-endpoint calls.
- * @property clientSecret OAuth 2.0 client secret for token-endpoint calls.
  * @property claims Mapping from IdP claim names to the internal representation.
  * @property encryption Optional encryption configuration for decrypting IdP JWE or nested JWE tokens.
  *     Required when the IdP sends encrypted tokens (e.g. OIDC Message-Level Encryption).
@@ -362,9 +359,6 @@ class IdpConfiguration(
     var issuerUri: String? = null,
     var jwkSetUri: String? = null,
     var jwksCacheTtlMinutes: Long = 60,
-    var tokenUri: String? = null,
-    var clientId: String? = null,
-    var clientSecret: String? = null,
 
     @NestedConfigurationProperty
     var claims: IdpClaimsMapping = IdpClaimsMapping(),

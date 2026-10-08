@@ -40,6 +40,17 @@ internal fun shouldSkipPath(
     return false
 }
 
+/**
+ * Checks whether [requestPath] matches the configured refresh-token path, using the same Spring
+ * [PathPattern][org.springframework.web.util.pattern.PathPattern] semantics as [shouldSkipPath].
+ *
+ * @param pathPattern Spring PathPattern string naming the path that accepts refresh tokens.
+ * @param requestPath The incoming request path.
+ * @return `true` when the request path matches the pattern.
+ */
+internal fun matchesRefreshTokenPath(pathPattern: String, requestPath: String): Boolean =
+    pathPatternParser.parse(pathPattern).matches(PathContainer.parsePath(requestPath))
+
 private val pathPatternParser = PathPatternParser()
 
 /**
