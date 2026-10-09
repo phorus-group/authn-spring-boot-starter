@@ -20,7 +20,7 @@ ext["jackson-2-bom.version"] = "2.21.7"
 ext["jackson-bom.version"] = "3.1.7"
 ext["logback.version"] = "1.5.34"
 ext["log4j2.version"] = "2.25.5"
-ext["spring-framework.version"] = "7.0.8"
+ext["spring-framework.version"] = "7.0.9"
 ext["netty.version"] = "4.2.17.Final"
 
 group = "group.phorus"
