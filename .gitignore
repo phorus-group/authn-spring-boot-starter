@@ -139,3 +139,5 @@ Desktop.ini
 # ESLint
 ######################
 .eslintcache
+# Gradle dependency lock, generated on the fly by the vulnerability workflow
+gradle.lockfile
