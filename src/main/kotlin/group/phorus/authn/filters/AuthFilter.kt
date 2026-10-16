@@ -3,8 +3,8 @@ package group.phorus.authn.filters
 import group.phorus.authn.config.MetricsRecorder
 import group.phorus.authn.config.SecurityConfiguration
 import group.phorus.authn.core.config.AuthMode
-import group.phorus.authn.core.context.AuthContext
-import group.phorus.authn.core.dtos.AuthContextData
+import group.phorus.authn.core.context.AuthenticationContext
+import group.phorus.authn.core.dtos.AuthenticationContextData
 import group.phorus.authn.core.dtos.TokenType
 import group.phorus.authn.core.services.Authenticator
 import group.phorus.authn.extractBearerToken
@@ -25,7 +25,7 @@ import org.springframework.web.server.ServerWebExchange
 
 /**
  * WebFilter that extracts the `Authorization: Bearer <token>` header, validates the token,
- * and populates the [AuthContext] coroutine context element with the authenticated user's data.
+ * and populates the [AuthenticationContext] coroutine context element with the authenticated user's data.
  *
  * ### Behavior by authentication mode
  *
@@ -57,7 +57,7 @@ import org.springframework.web.server.ServerWebExchange
  * ### Enabling / disabling
  * Controlled by `group.phorus.security.filters.token.enabled` (default: `false`).
  *
- * @see AuthContext
+ * @see AuthenticationContext
  * @see Authenticator
  * @see group.phorus.authn.config.TokenFilterConfiguration
  */
@@ -122,9 +122,9 @@ class AuthFilter(
                 throw Unauthorized("Invalid access token")
         }
 
-        val authContextData = authData.mapTo<AuthContextData>()!!
+        val authContextData = authData.mapTo<AuthenticationContextData>()!!
 
-        return withContext(AuthContext.context.asContextElement(value = authContextData)) {
+        return withContext(AuthenticationContext.context.asContextElement(value = authContextData)) {
             chain.filter(exchange)
         }
     }

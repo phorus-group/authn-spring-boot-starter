@@ -98,7 +98,7 @@ class Path(
  * | Order | Filter | Context populated |
  * |-------|--------|-------------------|
  * | 1 | [group.phorus.authn.filters.ApiKeyFilter] | [group.phorus.authn.core.context.ApiKeyContext] |
- * | 2 | [group.phorus.authn.filters.AuthFilter] | [group.phorus.authn.core.context.AuthContext] |
+ * | 2 | [group.phorus.authn.filters.AuthFilter] | [group.phorus.authn.core.context.AuthenticationContext] |
  *
  * ### Composability
  *
@@ -124,7 +124,7 @@ class FiltersConfiguration(
  * This filter extracts the `Authorization: Bearer <token>` header, validates the token
  * using [group.phorus.authn.core.services.Authenticator] or
  * [group.phorus.authn.services.impl.IdpAuthenticator], and populates
- * [group.phorus.authn.core.context.AuthContext].
+ * [group.phorus.authn.core.context.AuthenticationContext].
  *
  * ### Path filtering modes
  *

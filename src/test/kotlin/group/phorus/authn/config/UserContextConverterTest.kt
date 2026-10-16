@@ -151,7 +151,7 @@ class UserContextConverterTest {
         }
 
         @Test
-        fun `returns AuthContextData mapped from AuthData`() {
+        fun `returns AuthenticationContextData mapped from AuthData`() {
             val converter = buildConverter()
 
             val result = converter.convert("Bearer valid-token")

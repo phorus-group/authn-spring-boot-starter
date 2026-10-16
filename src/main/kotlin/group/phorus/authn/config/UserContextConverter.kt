@@ -1,7 +1,7 @@
 package group.phorus.authn.config
 
 import group.phorus.authn.core.config.AuthMode
-import group.phorus.authn.core.dtos.AuthContextData
+import group.phorus.authn.core.dtos.AuthenticationContextData
 import group.phorus.authn.core.dtos.TokenType
 import group.phorus.authn.core.services.Authenticator
 import group.phorus.authn.extractBearerToken
@@ -13,14 +13,14 @@ import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.core.convert.converter.Converter
 
 /**
- * Spring [Converter] that transforms a raw `Authorization` header value into [AuthContextData].
+ * Spring [Converter] that transforms a raw `Authorization` header value into [AuthenticationContextData].
  *
  * This enables controller parameter injection via `@RequestHeader`:
  *
  * ```kotlin
  * @GetMapping("/me")
  * suspend fun me(
- *     @RequestHeader(HttpHeaders.AUTHORIZATION) auth: AuthContextData,
+ *     @RequestHeader(HttpHeaders.AUTHORIZATION) auth: AuthenticationContextData,
  * ): UserProfile {
  *     return userService.getProfile(auth.userId)
  * }
@@ -32,17 +32,17 @@ import org.springframework.core.convert.converter.Converter
  * run, and a refresh token is refused.
  *
  * @see group.phorus.authn.filters.AuthFilter
- * @see AuthContextData
+ * @see AuthenticationContextData
  */
 @AutoConfiguration
 class UserContextConverter(
     private val securityConfiguration: SecurityConfiguration,
     private val authenticator: Authenticator,
     idpAuthenticatorProvider: ObjectProvider<IdpAuthenticator>,
-) : Converter<String, AuthContextData> {
+) : Converter<String, AuthenticationContextData> {
     private val idpAuthenticator = idpAuthenticatorProvider.getIfAvailable()
 
-    override fun convert(authorization: String): AuthContextData {
+    override fun convert(authorization: String): AuthenticationContextData {
         val jwt = extractBearerToken(authorization)
 
         val effectiveAuthenticator = when (securityConfiguration.mode) {
@@ -58,6 +58,6 @@ class UserContextConverter(
 
         if (authData.tokenType == TokenType.REFRESH_TOKEN) throw Unauthorized("Invalid access token")
 
-        return authData.mapTo<AuthContextData>()!!
+        return authData.mapTo<AuthenticationContextData>()!!
     }
 }

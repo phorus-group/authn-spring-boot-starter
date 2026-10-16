@@ -217,7 +217,7 @@ class AuthController(
     // Protected: requires a valid token in the Authorization header
     @GetMapping("/me")
     suspend fun me(): UserProfile {
-        val auth = AuthContext.context.get()  // the authenticated user
+        val auth = AuthenticationContext.context.get()  // the authenticated user
         return userRepository.findById(auth.userId).toProfile()
     }
 }
@@ -255,9 +255,9 @@ Here is what happened behind the scenes in the quick start example:
    - It checked that the token was not expired and that the issuer matched
    - It extracted the user's ID, roles, scope, and any custom properties from the claims
    - It ran all registered `Validator` beans to perform custom claim validation (if any)
-   - It made that information available to your code as an `AuthContextData` object
+   - It made that information available to your code as an `AuthenticationContextData` object
 
-3. Your controller called `AuthContext.context.get()` to read the authenticated user's data
+3. Your controller called `AuthenticationContext.context.get()` to read the authenticated user's data
    and used `auth.userId` to look up the user profile.
 
 If the token is missing, expired, tampered with, or otherwise invalid, the filter returns a
@@ -267,7 +267,7 @@ If the token is missing, expired, tampered with, or otherwise invalid, the filte
 
 There are two ways to access the authenticated user's data in your code:
 
-**Option 1: `AuthContext.context.get()`**
+**Option 1: `AuthenticationContext.context.get()`**
 
 Works anywhere in your request handling code, controllers, services, repositories, or any function
 called during request processing. This is the most common approach.
@@ -276,7 +276,7 @@ called during request processing. This is the most common approach.
 // In a controller
 @GetMapping("/me")
 suspend fun me(): UserProfile {
-    val auth = AuthContext.context.get()
+    val auth = AuthenticationContext.context.get()
     return userService.getProfile(auth.userId)
 }
 
@@ -284,7 +284,7 @@ suspend fun me(): UserProfile {
 @Service
 class OrderService {
     suspend fun placeOrder(order: OrderRequest): Order {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return orderRepository.save(Order(userId = auth.userId, items = order.items))
     }
 }
@@ -292,20 +292,20 @@ class OrderService {
 
 **Option 2: `@RequestHeader` parameter injection**
 
-Spring can automatically convert the `Authorization` header into an `AuthContextData` object
+Spring can automatically convert the `Authorization` header into an `AuthenticationContextData` object
 in your controller method signature. This is useful when you prefer explicit parameter passing.
 Registered validators run, and a refresh token is rejected with a 401.
 
 ```kotlin
 @GetMapping("/me")
 suspend fun me(
-    @RequestHeader(HttpHeaders.AUTHORIZATION) auth: AuthContextData,
+    @RequestHeader(HttpHeaders.AUTHORIZATION) auth: AuthenticationContextData,
 ): UserProfile {
     return userService.getProfile(auth.userId)
 }
 ```
 
-Both approaches give you an `AuthContextData` object with the same fields:
+Both approaches give you an `AuthenticationContextData` object with the same fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -340,8 +340,8 @@ for the full IdP claim mapping reference and supported formats.
 
 ### Roles and scope
 
-A token carries two independent lists of authority, read into `AuthContextData.roles` and
-`AuthContextData.scope`. `roles` holds what the subject is, per
+A token carries two independent lists of authority, read into `AuthenticationContextData.roles` and
+`AuthenticationContextData.scope`. `roles` holds what the subject is, per
 [RFC 9068 §7.2](https://datatracker.ietf.org/doc/html/rfc9068#section-7.2). `scope` holds what the
 calling application was granted consent to do on the subject's behalf, per
 [RFC 6749 §3.3](https://datatracker.ietf.org/doc/html/rfc6749#section-3.3).
@@ -430,13 +430,13 @@ class AuthController(
 
     @GetMapping("/me")
     suspend fun me(): UserProfile {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return userService.getProfile(auth.userId)
     }
 
     @PostMapping("/auth/token")
     suspend fun refresh(): AccessToken {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return tokenFactory.createAccessToken(auth.userId, claims = mapOf("roles" to auth.roles))
     }
 }
@@ -547,7 +547,7 @@ class BridgeAuthController(
 
     @GetMapping("/me")
     suspend fun me(): UserProfile {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return userService.getProfile(auth.userId)
     }
 }
@@ -578,7 +578,7 @@ class BridgeAuthController(
 
     @GetMapping("/me")
     suspend fun me(): UserProfile {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return userService.getProfile(auth.userId)
     }
 }
@@ -632,13 +632,13 @@ class ApiController(
 ) {
     @GetMapping("/items")
     suspend fun listItems(): List<Item> {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return itemService.getItemsForUser(auth.userId)
     }
 
     @PostMapping("/items")
     suspend fun createItem(@RequestBody request: CreateItemRequest): Item {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
 
         val mayWrite = "ITEM_WRITER" in auth.roles
 
@@ -862,7 +862,7 @@ implement caching or other optimization strategies.
 <summary><b>Using ApiKeyContext in controllers and services</b></summary>
 
 After successful API key authentication, the key identity is available via
-`ApiKeyContext.context.get()`, similar to how `AuthContext` works for token authentication.
+`ApiKeyContext.context.get()`, similar to how `AuthenticationContext` works for token authentication.
 
 ```kotlin
 @RestController
@@ -948,7 +948,7 @@ In your controller, you can read both contexts:
 ```kotlin
 @GetMapping("/admin/dashboard")
 suspend fun dashboard(): DashboardData {
-    val auth = AuthContext.context.get()       // JWT identity
+    val auth = AuthenticationContext.context.get()       // JWT identity
     val apiKey = ApiKeyContext.context.get()   // API key identity
     // both are guaranteed to be populated on this path
 }
@@ -991,7 +991,7 @@ class AuthController(
     // Client sends the refresh token in the Authorization header to this endpoint
     @PostMapping("/auth/token")
     suspend fun refresh(): AccessToken {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         return tokenFactory.createAccessToken(auth.userId, claims = mapOf("roles" to auth.roles))
     }
 }
@@ -1011,7 +1011,7 @@ The typical client flow:
 <summary><b>Embedding and reading extra claims</b></summary>
 
 You can embed arbitrary key-value pairs into a token at creation time. These are stored as
-additional JWT claims and are available later via `AuthContextData.properties`.
+additional JWT claims and are available later via `AuthenticationContextData.properties`.
 
 ```kotlin
 // When creating the token, pass a properties map
@@ -1025,7 +1025,7 @@ val token = tokenFactory.createAccessToken(
 )
 
 // Later, in any controller or service handling a request with this token
-val auth = AuthContext.context.get()
+val auth = AuthenticationContext.context.get()
 val tenantId = auth.properties["tenantId"]
 val deviceId = auth.properties["deviceId"]
 ```
@@ -1085,7 +1085,7 @@ request path, method, headers, remote IP address, and other metadata.
 @Service
 class AuditService {
     suspend fun logAction(action: String) {
-        val auth = AuthContext.context.get()
+        val auth = AuthenticationContext.context.get()
         val http = HTTPContext.context.get()
         auditRepository.save(
             AuditEntry(
